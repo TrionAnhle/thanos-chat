@@ -3,21 +3,30 @@
   "configurations": [
     
     {
+      "name": "Launch Chat Socket (Nest start:debug)",
       "type": "pwa-node",
       "request": "launch",
-      "name": "Launch Nest (ts-node)",
-      "program": "${workspaceFolder}/src/main.ts",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:debug"],
       "cwd": "${workspaceFolder}",
-      "runtimeArgs": [
-        "-r",
-        "ts-node/register",
-        "-r",
-        "tsconfig-paths/register"
-      ],
-      "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",
-      "autoAttachChildProcesses": true,
-      "sourceMaps": true
+      "internalConsoleOptions": "neverOpen",
+      "restart": true,
+      "envFile": "${workspaceFolder}/.env",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Attach to Chat Socket",
+      "type": "pwa-node",
+      "request": "attach",
+      "port": 9229,
+      "address": "localhost",
+      "restart": false,
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
     }
   ]
 }

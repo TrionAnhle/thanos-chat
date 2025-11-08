@@ -4,8 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { SignupAuthDto } from './dto/signup.dto';
 import { SigninAuthDto } from './dto/signin.dto';
-import { DomainException } from '../../common/exception/domain.exception';
-import { DomainCode } from 'src/common/exception/domain.code';
+import { DomainException } from '../../common/filter/domain.exception';
+import { DomainCode } from 'src/common/filter/domain.code';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +23,7 @@ export class AuthService {
       );
     }
 
-    const payload = { username: user.username, sub: user.id };
+    const payload = { username: user.username, id: user.id };
     return {
       access_token: this.jwtService.sign(payload),
     };
@@ -40,7 +40,7 @@ export class AuthService {
       );
     }
     const user = await this.usersService.create(req);
-    const payload = { username: user.username, sub: user.id };
+    const payload = { username: user.username, id: user.id };
     return {
       access_token: this.jwtService.sign(payload),
     };

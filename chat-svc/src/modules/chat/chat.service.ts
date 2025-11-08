@@ -1,26 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { CreateChatDto } from './dto/create-chat.dto';
-import { UpdateChatDto } from './dto/update-chat.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { Socket } from 'socket.io';
 
 @Injectable()
 export class ChatService {
-  create(createChatDto: CreateChatDto) {
-    return 'This action adds a new chat';
+  constructor(private readonly prisma: PrismaService) {}
+
+  // Chat manager
+  async createMessage(input: {
+    roomId: string;
+    authorId: string;
+    content: string;
+  }) {
+    return this.prisma.message.create({
+      data: {
+        content: input.content,
+        senderId: input.authorId,
+        chatRoomId: input.roomId,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all chat`;
+  // Room manager
+  async join(client: Socket, roomId: string) {
+    await client.join(roomId);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} chat`;
+  async leave(client: Socket, roomId: string) {
+    await client.leave(roomId);
   }
 
-  update(id: number, updateChatDto: UpdateChatDto) {
-    return `This action updates a #${id} chat`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} chat`;
+  async leaveAll(client: Socket) {
+    for (const room of client.rooms) {
+      if (room !== client.id) await client.leave(room);
+    }
   }
 }
