@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Launch Nest (ts-node)",
+      "program": "${workspaceFolder}/src/main.ts",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register",
+        "-r",
+        "tsconfig-paths/register"
+      ],
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true
+    }
+  ]
+}
