@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { SignupAuthDto } from './dto/signup.dto';
 import { SigninAuthDto } from './dto/signin.dto';
+import { DomainException } from '../../common/exception/domain.exception';
+import { DomainCode } from 'src/common/exception/domain.code';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +17,10 @@ export class AuthService {
   async signin(req: SigninAuthDto) {
     const user = await this.usersService.findOneByUsername(req.username);
     if (!user || !(await bcrypt.compare(req.password, user.password))) {
-      throw new Error('Invalid credentials');
+      throw new DomainException(
+        DomainCode.INVALID_CREDENTIALS,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     const payload = { username: user.username, sub: user.id };
@@ -29,7 +34,10 @@ export class AuthService {
       req.username,
     );
     if (existingUser) {
-      throw new Error('Username already exists');
+      throw new DomainException(
+        DomainCode.USERNAME_ALREADY_USED,
+        HttpStatus.BAD_REQUEST,
+      );
     }
     const user = await this.usersService.create(req);
     const payload = { username: user.username, sub: user.id };
