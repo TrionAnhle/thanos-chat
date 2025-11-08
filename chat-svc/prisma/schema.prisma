@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  email String @unique
+  name  String?
+  username String @unique
+  password String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relations ---
+  // All chat rooms this user is a member of.
+  chatRooms      ChatRoom[] @relation("ChatRoomParticipants", fields: [chatRoomIds], references: [id])
+  chatRoomIds    String[]   @db.ObjectId
+
+  // Messages sent by the user
+  sentMessages   Message[]  @relation("SentMessages")
+}
+
+
+model ChatRoom {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String?
+
+  // Flag to distinguish between private DMs and group chats.
+  isGroupChat Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relations ---
+  // All users participating in this chat room.
+  participants   User[]   @relation("ChatRoomParticipants", fields: [participantIds], references: [id])
+  participantIds String[] @db.ObjectId
+
+  // All messages sent in this chat room.
+  messages Message[]
+}
+
+// Represents a single message within a ChatRoom.
+model Message {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  content String // The text content of the message.
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relations ---
+  // The user who sent the message.
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+  senderId String @db.ObjectId
+
+  // The chat room this message belongs to.
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id])
+  chatRoomId String   @db.ObjectId
+}
