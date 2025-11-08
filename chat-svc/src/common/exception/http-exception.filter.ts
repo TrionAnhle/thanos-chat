@@ -9,41 +9,47 @@ import { Response } from 'express';
 import { DomainException } from './domain.exception';
 import { DomainCode, DomainCodeMessage } from './domain.code';
 
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    // Default status
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let body: Record<string, unknown> = {
-      message: DomainCodeMessage[DomainCode.UNKNOWN_ERROR],
-      code: DomainCode.UNKNOWN_ERROR,
-    };
+    let code: number = DomainCode.UNKNOWN_ERROR;
+    let message: string = DomainCodeMessage[DomainCode.UNKNOWN_ERROR];
 
     if (exception instanceof DomainException) {
       status = exception.getStatus();
-      body = {
-        code: exception.code,
-        message: exception.message,
-        ...(exception.metadata && { metadata: exception.metadata }),
-      };
+      code = exception.code;
+      message = exception.message;
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      body =
-        typeof exceptionResponse === 'string'
-          ? { message: exceptionResponse }
-          : (exceptionResponse as Record<string, unknown>);
-    }
+      code = DomainCode.BAD_REQUEST;
 
-    if (!('code' in body)) {
-      body.code = DomainCode.UNKNOWN_ERROR;
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse;
+      } else {
+        const responseBody = exceptionResponse as Record<string, unknown>;
+        const responseMessage = responseBody.message;
+
+        if (Array.isArray(responseMessage)) {
+          message = responseMessage[0];
+        } else if (typeof responseMessage === 'string') {
+          message = responseMessage;
+        } else if (typeof responseBody.error === 'string') {
+          message = responseBody.error;
+        } else {
+          message = DomainCodeMessage[DomainCode.UNKNOWN_ERROR];
+        }
+      }
     }
 
     response.status(status).json({
-      ...body,
+      code,
+      message,
     });
   }
 }
