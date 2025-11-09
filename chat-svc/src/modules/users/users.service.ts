@@ -23,8 +23,14 @@ export class UsersService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      rooms: user.chatRoomIds,
+    };
   }
 
   findOneByUsername(username: string) {
@@ -32,7 +38,6 @@ export class UsersService {
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {
-    // Add password hashing here if you allow password updates
     return this.prisma.user.update({
       where: { id },
       data: updateUserDto,
