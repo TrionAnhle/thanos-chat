@@ -5,8 +5,6 @@ import { JoinRoomDto } from './dto/join-room.dto';
 import { DomainException } from 'src/common/filter/domain.exception';
 import { DomainCode } from 'src/common/filter/domain.code';
 import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvents } from '../chat/dtos/events';
-import { ChatType } from '../chat/dtos/type';
 import { MessageType } from '../chat/dtos/message-type';
 
 @Injectable()
