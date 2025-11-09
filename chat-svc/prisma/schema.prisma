@@ -11,12 +11,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  email String @unique
-  name  String?
-  username String @unique
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  email    String  @unique
+  name     String?
+  username String  @unique
   password String
 
   // Timestamps
@@ -25,17 +24,17 @@ model User {
 
   // --- Relations ---
   // All chat rooms this user is a member of.
-  chatRooms      ChatRoom[] @relation("ChatRoomParticipants", fields: [chatRoomIds], references: [id])
-  chatRoomIds    String[]   @db.ObjectId
+  chatRooms   ChatRoom[] @relation("ChatRoomParticipants", fields: [chatRoomIds], references: [id])
+  chatRoomIds String[]   @db.ObjectId
 
   // Messages sent by the user
-  sentMessages   Message[]  @relation("SentMessages")
+  sentMessages Message[] @relation("SentMessages")
 }
 
-
 model ChatRoom {
-  id   String @id @default(auto()) @map("_id") @db.ObjectId
-  name String?
+  id   String  @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  description String?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -45,6 +44,8 @@ model ChatRoom {
   // All users participating in this chat room.
   participants   User[]   @relation("ChatRoomParticipants", fields: [participantIds], references: [id])
   participantIds String[] @db.ObjectId
+
+  ownerId String @db.ObjectId
 
   // All messages sent in this chat room.
   messages Message[]
