@@ -37,9 +37,6 @@ model ChatRoom {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
   name String?
 
-  // Flag to distinguish between private DMs and group chats.
-  isGroupChat Boolean @default(false)
-
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
