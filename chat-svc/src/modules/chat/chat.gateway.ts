@@ -18,6 +18,7 @@ import { ChatService } from './chat.service';
 import { WsSendMessageDto } from './dtos/ws-send-message.dto';
 import { ChatType } from './dtos/type';
 import { SocketExceptionFilter } from 'src/common/filter/ws-exception.filter';
+import { MessageType } from './dtos/message-type';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -65,7 +66,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       content: dto.content,
     });
     const roomChannel = dto.type + dto.roomId;
-    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, msg);
+    const sendMsg = {
+      authorId: msg.senderId,
+      type: MessageType.MESSAGE,
+      username: client.data.user.username,
+      content: msg.content,
+    };
+    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, sendMsg);
+  }
+
+  async onNotify(
+    roomId: string,
+    msg: {
+      senderId: string;
+      type: MessageType;
+      username: string;
+      content: string;
+    },
+  ) {
+    const roomChannel = ChatType.GROUP + roomId;
+    const sendMsg = {
+      authorId: msg.senderId,
+      type: msg.type,
+      username: msg.username,
+      content: msg.content,
+    };
+    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, sendMsg);
   }
 
   private ensureAuthenticated(client: Socket) {

@@ -7,6 +7,7 @@ import { DomainCode } from 'src/common/filter/domain.code';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvents } from '../chat/dtos/events';
 import { ChatType } from '../chat/dtos/type';
+import { MessageType } from '../chat/dtos/message-type';
 
 @Injectable()
 export class RoomsService {
@@ -127,13 +128,11 @@ export class RoomsService {
         },
       },
     });
-
-    this.chatGateway.io
-      ?.to(ChatType.GROUP + room.id)
-      .emit(ChatEvents.NEW_MESSAGE, {
-        authorId: user.id,
-        username: user.username,
-        content: user.username + ' vừa tham gia nhóm',
-      });
+    this.chatGateway.onNotify(room.id, {
+      senderId: user.id,
+      type: MessageType.NOTIFY,
+      username: user.username,
+      content: user.username + ' vừa tham gia nhóm',
+    });
   }
 }
