@@ -5,4 +5,5 @@ export enum ChatEvents {
   SEND_MESSAGE = 'chat:send',
   NEW_MESSAGE = 'chat:new',
   TYPING = 'chat:typing',
+  ERROR = 'chat:error',
 }

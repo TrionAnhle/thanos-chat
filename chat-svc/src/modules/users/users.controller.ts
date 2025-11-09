@@ -4,10 +4,10 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt/jwt-auth.guard';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
     // req.user is populated by the JwtStrategy

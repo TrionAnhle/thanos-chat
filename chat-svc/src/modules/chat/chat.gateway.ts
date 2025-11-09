@@ -9,14 +9,16 @@ import {
   OnGatewayDisconnect,
   WsException,
 } from '@nestjs/websockets';
-import { UseGuards } from '@nestjs/common';
+import { UseFilters, UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ChatEvents } from './dtos/events';
 import * as jwt from 'jsonwebtoken';
 import { WsJwtGuard } from 'src/common/guards/ws/ws-jwt.guard';
 import { ChatService } from './chat.service';
 import { WsSendMessageDto } from './dtos/ws-send-message.dto';
-import { ChatType } from './dtos/mesaage-type';
+import { ChatType } from './dtos/type';
+import { SocketExceptionFilter } from 'src/common/filter/ws-exception.filter';
+import { MessageType } from './dtos/message-type';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -24,15 +26,20 @@ import { ChatType } from './dtos/mesaage-type';
   transports: ['websocket'],
 })
 @UseGuards(WsJwtGuard)
+@UseFilters(SocketExceptionFilter)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() io: Server;
 
   constructor(private readonly chatService: ChatService) {}
 
   async handleConnection(client: Socket) {
-    const user = this.ensureAuthenticated(client);
-    const userRoom = ChatType.USER + user.id;
-    await this.chatService.join(client, userRoom);
+    try {
+      const user = this.ensureAuthenticated(client);
+      const userRoom = ChatType.USER + user.id;
+      await this.chatService.join(client, userRoom);
+    } catch (error) {
+      this.handleWsError(client, error);
+    }
   }
 
   async handleDisconnect(client: Socket) {
@@ -59,7 +66,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       content: dto.content,
     });
     const roomChannel = dto.type + dto.roomId;
-    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, dto.content);
+    const sendMsg = {
+      authorId: msg.senderId,
+      type: MessageType.MESSAGE,
+      username: client.data.user.username,
+      content: msg.content,
+    };
+    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, sendMsg);
+  }
+
+  async onNotify(
+    roomId: string,
+    msg: {
+      senderId: string;
+      type: MessageType;
+      username: string;
+      content: string;
+    },
+  ) {
+    const roomChannel = ChatType.GROUP + roomId;
+    const sendMsg = {
+      authorId: msg.senderId,
+      type: msg.type,
+      username: msg.username,
+      content: msg.content,
+    };
+    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, sendMsg);
   }
 
   private ensureAuthenticated(client: Socket) {
@@ -73,7 +105,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
+      const payload = jwt.verify(token, process.env.JWT_SECRET) as {
         id?: string;
         username?: string;
       };
@@ -89,5 +121,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch {
       throw new WsException('Unauthorized');
     }
+  }
+
+  private handleWsError(client: Socket, error: unknown) {
+    if (!(error instanceof WsException)) throw error;
+
+    const payload = error.getError();
+    const message =
+      typeof payload === 'string'
+        ? payload
+        : ((payload as Record<string, any>)?.message ?? 'Unexpected error');
+
+    client.emit(ChatEvents.ERROR, {
+      success: false,
+      message,
+      timestamp: new Date().toISOString(),
+    });
+    client.disconnect(true);
   }
 }
