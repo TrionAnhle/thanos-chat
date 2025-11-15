@@ -13,7 +13,7 @@ const saveAuthSession = (authState) => {
 
     window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState))
   } catch (error) {
-    console.warn('Can\'t save login information', error)
+    console.warn('Can not save login information', error)
   }
 }
 
@@ -26,7 +26,7 @@ const loadAuthSession = () => {
     const raw = window.localStorage.getItem(AUTH_STORAGE_KEY)
     return raw ? JSON.parse(raw) : null
   } catch (error) {
-    console.warn('Can\'t read login information', error)
+    console.warn('Can not read login information', error)
     return null
   }
 }

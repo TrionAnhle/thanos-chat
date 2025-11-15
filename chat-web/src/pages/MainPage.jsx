@@ -1,50 +1,41 @@
 import { useEffect, useMemo, useState } from 'react'
 import ChatRoom from './ChatRoom.jsx'
-
-const DEFAULT_RECENT_ROOMS = [
-  {
-    room: 'general',
-    title: '#general',
-    lastMessage: 'Thảo luận chung của cả đội',
-  },
-  {
-    room: 'avengers',
-    title: 'Avengers HQ',
-    lastMessage: 'Tổng kết nhiệm vụ mới nhất',
-  },
-  {
-    room: 'guardians',
-    title: 'Guardians',
-    lastMessage: 'Tình hình ngoài vũ trụ',
-  },
-]
+import userService from '../services/userService.js'
 
 const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onLeave }) => {
   const [username, setUsername] = useState(defaultUsername)
   const [room, setRoom] = useState('general')
-  const [recentRooms, setRecentRooms] = useState(DEFAULT_RECENT_ROOMS)
+  const [recentRooms, setRecentRooms] = useState([])
 
   useEffect(() => {
     setUsername(defaultUsername)
   }, [defaultUsername])
 
   useEffect(() => {
-    if (!chatUser?.room) {
-      return
+    let isMounted = true
+    const controller = new AbortController()
+
+    const fetchRecentChats = async () => {
+      try {
+        const recent = await userService.getRecentChats({ signal: controller.signal })
+        if (!isMounted || !Array.isArray(recent) || recent.length === 0) {
+          return
+        }
+        setRecentRooms(recent)
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.error('Unable to load recent chats', error)
+        }
+      }
     }
 
-    setRecentRooms((previous) => {
-      const filtered = previous.filter((item) => item.room !== chatUser.room)
-      const existing = previous.find((item) => item.room === chatUser.room)
-      const nextRoom = existing ?? {
-        room: chatUser.room,
-        title: chatUser.room,
-        lastMessage: 'Đang trò chuyện',
-      }
+    fetchRecentChats()
 
-      return [nextRoom, ...filtered].slice(0, 10)
-    })
-  }, [chatUser])
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [])
 
   const activeRoom = useMemo(() => chatUser?.room ?? null, [chatUser])
 
@@ -75,37 +66,40 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
       <aside className="chat-layout__sidebar">
         <div className="join-page__header">
           <div>
-            <h1>Cuộc trò chuyện</h1>
+            <h2>Conversation</h2>
             {email && <p className="join-page__subtitle">Đang đăng nhập với {email}</p>}
           </div>
           {onLogout && (
             <button type="button" className="link-button" onClick={onLogout}>
-              Đăng xuất
+              Log out
             </button>
           )}
         </div>
 
         <div className="recent-chat">
-          <h2>Gần đây</h2>
+          <h2>Recent</h2>
           <ul>
             {recentRooms.map((recent) => (
               <li key={recent.room}>
                 <button
                   type="button"
-                  className={`recent-chat__item ${activeRoom === recent.room ? 'recent-chat__item--active' : ''}`}
-                  onClick={() => handleSelectConversation(recent.room)}
+                  className={`recent-chat__item ${activeRoom === recent.chatRoom ? 'recent-chat__item--active' : ''}`}
+                  onClick={() => handleSelectConversation(recent.chatRoom)}
                 >
-                  <strong>{recent.title}</strong>
-                  <span>{recent.lastMessage}</span>
+                  <strong>
+                    {recent.chatRoom?.type === "GROUP" ? 
+                    `#${recent.chatRoom?.name}` : `${recent.chatRoom?.name}(${recent.chatRoom?.username})`}
+                  </strong>
+                  <span>{recent.content}</span>
                 </button>
               </li>
             ))}
           </ul>
         </div>
 
-        <form className="join-form join-form--compact" onSubmit={handleSubmit}>
+        {/* <form className="join-form join-form--compact" onSubmit={handleSubmit}>
           <label>
-            Tên hiển thị
+            Tên hiển thị {' '}
             <input
               type="text"
               value={username}
@@ -114,16 +108,16 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
             />
           </label>
           <label>
-            Tên phòng
+            Tên phòng {' '}
             <input type="text" value={room} onChange={(event) => setRoom(event.target.value)} placeholder="general" />
           </label>
           <button type="submit">Vào phòng</button>
-        </form>
+        </form> */}
       </aside>
 
       <div className="chat-layout__content">
         {chatUser ? (
-          <ChatRoom key={chatUser.room} user={chatUser} onLeave={onLeave} />
+          <ChatRoom key={room.id} room={room} onLeave={onLeave} />
         ) : (
           <div className="chat-placeholder">
             <h2>Chọn một cuộc trò chuyện</h2>

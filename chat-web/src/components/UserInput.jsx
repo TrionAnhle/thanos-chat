@@ -20,12 +20,12 @@ const UserInput = ({ onSend }) => {
       <input
         type="text"
         name="message"
-        placeholder="Nhập tin nhắn ..."
+        placeholder="Typing ..."
         value={message}
         onChange={(event) => setMessage(event.target.value)}
         autoComplete="off"
       />
-      <button type="submit">Gửi</button>
+      <button type="submit">Send</button>
     </form>
   )
 }

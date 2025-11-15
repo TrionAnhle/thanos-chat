@@ -50,7 +50,7 @@ const RegisterPage = ({ onSuccess, onSwitchToLogin }) => {
         email: trimmedEmail,
         password,
       })
-      handleRegisterSuccess(response)
+      handleRegisterSuccess(response, { username: trimmedUsername, email: trimmedEmail })
     } catch (submissionError) {
       toast.error(submissionError.message ?? 'Unable to register. Please try again')
     } finally {
@@ -58,12 +58,14 @@ const RegisterPage = ({ onSuccess, onSwitchToLogin }) => {
     }
   }
 
-  const handleRegisterSuccess = (response) => {
+  const handleRegisterSuccess = (response, profile = {}) => {
     const authState = {
-        token: response.token,
-      }
-      saveAuthSession(authState)
-      onSuccess?.(authState)
+      token: response.token,
+      username: profile.username,
+      email: profile.email,
+    }
+    saveAuthSession(authState)
+    onSuccess?.(authState)
   }
 
 

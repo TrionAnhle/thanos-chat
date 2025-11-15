@@ -5,10 +5,14 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { DomainException } from 'src/common/filter/domain.exception';
 import { DomainCode } from 'src/common/filter/domain.code';
+import { ChatService } from '../chat/chat.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatService: ChatService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const saltRounds = 10;
@@ -35,24 +39,15 @@ export class UsersService {
       );
     }
 
-    const roomIds = user.chatRoomIds ?? [];
-    const rooms = roomIds.length
-      ? await this.prisma.chatRoom.findMany({
-          where: { id: { in: roomIds } },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        })
-      : [];
-
     return {
       id: user.id,
       email: user.email,
       name: user.name,
-      rooms,
     };
+  }
+
+  async getChatRecent(id: string) {
+    return await this.chatService.findLatestMessages(id);
   }
 
   findOneByUsername(username: string) {

@@ -247,7 +247,7 @@ button:disabled:hover {
 }
 
 .chat-room__content {
-  display: grid;
+  display: contents;
   grid-template-columns: 240px 1fr;
   gap: 1.5rem;
 }

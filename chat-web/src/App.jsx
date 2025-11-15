@@ -18,22 +18,23 @@ const App = () => {
 
   const handleAuthSuccess = (authState) => {
     setAuthUser(authState)
+    setChatUser(null)
     setView(VIEWS.JOIN)
   }
 
-  const handleJoin = ({ username, room }) => {
-    setChatUser({ username, room })
-  }
-
-  const handleLeave = () => {
-    setChatUser(null)
-  }
-
   const handleLogout = () => {
-    setChatUser(null)
     setAuthUser(null)
+    setChatUser(null)
     saveAuthSession(null)
     setView(VIEWS.LOGIN)
+  }
+
+  const handleJoinRoom = (payload) => {
+    setChatUser(payload)
+  }
+
+  const handleLeaveRoom = () => {
+    setChatUser(null)
   }
 
   let content = null
@@ -46,12 +47,12 @@ const App = () => {
     content = (
       <SocketProvider>
         <MainPage
-          onJoin={handleJoin}
           defaultUsername={authUser.username ?? ''}
           onLogout={handleLogout}
           email={authUser.email}
+          onJoin={handleJoinRoom}
           chatUser={chatUser}
-          onLeave={handleLeave}
+          onLeave={handleLeaveRoom}
         />
       </SocketProvider>
     )

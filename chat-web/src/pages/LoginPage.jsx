@@ -21,7 +21,7 @@ const LoginPage = ({ onSuccess, onSwitchToRegister }) => {
     try {
       setIsSubmitting(true)
       const response = await authService.login({ username: trimmedUsername, password: trimmedPassword })
-      handleLoginSuccess(response)
+      handleLoginSuccess(response, { username: trimmedUsername })
     } catch (submissionError) {
       toast.error(submissionError.message ?? 'Unable to signin. Please try again')
     } finally {
@@ -29,12 +29,13 @@ const LoginPage = ({ onSuccess, onSwitchToRegister }) => {
     }
   }
 
-  const handleLoginSuccess = (response) => {
+  const handleLoginSuccess = (response, profile = {}) => {
     const authState = {
-        token: response.token,
-      }
-      saveAuthSession(authState)
-      onSuccess?.(authState)
+      token: response.token,
+      username: profile.username,
+    }
+    saveAuthSession(authState)
+    onSuccess?.(authState)
   }
 
   return (

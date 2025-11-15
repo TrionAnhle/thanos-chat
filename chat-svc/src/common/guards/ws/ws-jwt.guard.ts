@@ -25,12 +25,13 @@ export class WsJwtGuard implements CanActivate {
       ) as jwt.JwtPayload & {
         id?: string;
         username?: string;
+        name?: string;
       };
       const id = payload.id;
       if (!id) throw new UnauthorizedException('Invalid token');
       (client as any).data = {
         ...(client as any).data,
-        user: { id, username: payload.username },
+        user: { id, username: payload.username, name: payload.name },
       };
       return true;
     } catch {
