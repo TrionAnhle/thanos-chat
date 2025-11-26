@@ -1,5 +1,7 @@
-import { IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { ChatType } from 'src/modules/chat/dtos/type';
 
 export class JoinRoomDto {
-  @IsString() roomId: string;
+  @IsNotEmpty() @IsString() roomId: string;
+  @IsNotEmpty() @IsString() type: ChatType;
 }

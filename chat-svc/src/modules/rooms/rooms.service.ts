@@ -6,6 +6,7 @@ import { DomainException } from 'src/common/filter/domain.exception';
 import { DomainCode } from 'src/common/filter/domain.code';
 import { ChatGateway } from '../chat/chat.gateway';
 import { MessageType } from '../chat/dtos/message-type';
+import { ChatType } from '../chat/dtos/type';
 
 @Injectable()
 export class RoomsService {
@@ -23,6 +24,7 @@ export class RoomsService {
         description: req.description,
         ownerId,
         participantIds: [ownerId],
+        type: ChatType.GROUP,
       },
       select: {
         id: true,
@@ -51,20 +53,74 @@ export class RoomsService {
   async search(name: string) {
     if (!name?.trim()) return [];
 
-    return await this.prisma.chatRoom.findMany({
-      where: {
-        name: { contains: name, mode: 'insensitive' },
-      },
-      select: { id: true, name: true, description: true, createdAt: true },
-      orderBy: { name: 'asc' },
-    });
+    // find all room by name or user by name and username
+    const [rooms, users] = await Promise.all([
+      this.prisma.chatRoom.findMany({
+        where: {
+          name: { contains: name, mode: 'insensitive' },
+          type: ChatType.GROUP,
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.user.findMany({
+        where: {
+          OR: [
+            { name: { contains: name, mode: 'insensitive' } },
+            { username: { contains: name, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    // Mapping data
+    return {
+      rooms: rooms.map(({ id, name, description }) => ({
+        id,
+        name,
+        description,
+        type: ChatType.GROUP as const,
+      })),
+      users: users.map(({ id, name, username }) => ({
+        id,
+        name,
+        description: username,
+        type: ChatType.USER as const,
+      })),
+    };
   }
 
   async join(userId: string, req: JoinRoomDto) {
-    const room = await this.findRoom(req.roomId);
+    let room = await this.findRoom(req.roomId);
     const user = await this.findUser(userId);
-    const alreadyInRoom = room.participantIds?.includes(userId);
 
+    if (!room) {
+      if (ChatType.GROUP === req.type) {
+        throw new DomainException(DomainCode.ROOM_NOT_FOUND);
+      } else {
+        room = await this.prisma.chatRoom.create({
+          data: {
+            name: userId + '/' + req.roomId,
+            description: 'Direct message group',
+            participantIds: [userId, req.roomId],
+            ownerId: userId,
+            type: ChatType.USER,
+          },
+        });
+      }
+    }
+
+    const alreadyInRoom = room.participantIds?.includes(userId);
     if (!alreadyInRoom) {
       await this.handleJoinRoom(room, user);
     }
@@ -77,7 +133,7 @@ export class RoomsService {
   }
 
   async findRoom(roomId: string) {
-    const room = await this.prisma.chatRoom.findUnique({
+    return await this.prisma.chatRoom.findUnique({
       where: { id: roomId },
       select: {
         id: true,
@@ -86,11 +142,6 @@ export class RoomsService {
         participantIds: true,
       },
     });
-
-    if (!room) {
-      throw new DomainException(DomainCode.ROOM_NOT_FOUND);
-    }
-    return room;
   }
 
   async findUser(userId: string) {
@@ -126,6 +177,7 @@ export class RoomsService {
         },
       },
     });
+
     this.chatGateway.onNotify(room.id, {
       senderId: user.id,
       type: MessageType.NOTIFY,
@@ -151,7 +203,7 @@ export class RoomsService {
     const messages = await this.prisma.message.findMany({
       where: {
         createdAt: { lt: parsedTimestamp },
-        OR: [{ chatRoomId: roomId }, { senderId: roomId }],
+        OR: [{ chatRoomId: roomId }],
       },
       orderBy: { createdAt: 'desc' },
       take,
