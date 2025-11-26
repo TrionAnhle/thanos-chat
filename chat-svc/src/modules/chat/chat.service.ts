@@ -28,10 +28,7 @@ export class ChatService {
       {
         $match: {
           $expr: {
-            $or: [
-              { $eq: [{ $toString: '$chatRoomId' }, userId] },
-              { $eq: [{ $toString: '$senderId' }, userId] },
-            ],
+            $or: [{ $eq: [{ $toString: '$senderId' }, userId] }],
           },
         },
       },

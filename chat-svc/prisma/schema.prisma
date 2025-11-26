@@ -35,6 +35,7 @@ model ChatRoom {
   id   String  @id @default(auto()) @map("_id") @db.ObjectId
   name String
   description String?
+  type String?
 
   // Timestamps
   createdAt DateTime @default(now())

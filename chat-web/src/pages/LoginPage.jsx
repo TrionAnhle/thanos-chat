@@ -31,8 +31,9 @@ const LoginPage = ({ onSuccess, onSwitchToRegister }) => {
 
   const handleLoginSuccess = (response, profile = {}) => {
     const authState = {
-      token: response.token,
+      token: response.access_token,
       username: profile.username,
+      id: response.id
     }
     saveAuthSession(authState)
     onSuccess?.(authState)

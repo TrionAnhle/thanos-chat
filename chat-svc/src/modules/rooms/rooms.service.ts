@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JoinRoomDto } from './dto/join-room.dto';
@@ -130,7 +130,50 @@ export class RoomsService {
       senderId: user.id,
       type: MessageType.NOTIFY,
       username: user.username,
-      content: user.username + ' vừa tham gia nhóm',
+      content: user.username + ' have joined',
     });
+  }
+
+  async getMessages(roomId: string, timestamp: string, limit: number) {
+    const parsedTimestamp = new Date(timestamp);
+    if (!timestamp || Number.isNaN(parsedTimestamp.getTime())) {
+      throw new DomainException(
+        DomainCode.BAD_REQUEST,
+        HttpStatus.BAD_REQUEST,
+        {
+          timestamp,
+        },
+      );
+    }
+
+    const take = Math.min(Math.max(limit || 0, 1), 50);
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        createdAt: { lt: parsedTimestamp },
+        OR: [{ chatRoomId: roomId }, { senderId: roomId }],
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return messages.map((msg) => ({
+      id: msg.id,
+      authorId: msg.senderId,
+      type: MessageType.MESSAGE,
+      username: msg.sender?.username,
+      name: msg.sender?.name ?? msg.sender?.username ?? null,
+      content: msg.content,
+      timestamp: msg.createdAt.toISOString(),
+    }));
   }
 }
