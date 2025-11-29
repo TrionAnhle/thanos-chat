@@ -23,6 +23,7 @@ body {
 
 #root {
   min-height: 100vh;
+  height: 100vh;
 }
 
 .app-shell {
@@ -55,6 +56,66 @@ body {
   background: transparent;
   display: flex;
   align-items: stretch;
+}
+
+.chat-layout__mobile-bar {
+  display: none;
+}
+
+.sidebar-toggle {
+  display: none;
+  align-self: flex-start;
+  margin-bottom: 1rem;
+  background: #0f172a;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.85rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-toggle__icon {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-toggle__icon span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #fff;
+  border-radius: 10px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.sidebar-toggle--open .sidebar-toggle__icon span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.sidebar-toggle--open .sidebar-toggle__icon span:nth-child(2) {
+  opacity: 0;
+}
+
+.sidebar-toggle--open .sidebar-toggle__icon span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sidebar-backdrop {
+  display: none;
 }
 
 .chat-placeholder {
@@ -403,23 +464,177 @@ button:disabled:hover {
 }
 
 @media (max-width: 900px) {
-  .app-shell {
-    padding: 1rem;
-  }
-
   .chat-layout {
+    position: relative;
+    min-height: 100%;
+    height: calc(100svh - 1.5rem);
+    gap: 1rem;
     grid-template-columns: 1fr;
   }
 
   .chat-layout__sidebar {
-    order: 2;
+    position: fixed;
+    inset: 0.75rem;
+    max-width: calc(100% - 1.5rem);
+    height: calc(100% - 1.5rem);
+    z-index: 20;
+    transform: translateX(-110%);
+    transition: transform 0.25s ease;
+    box-shadow: 0 20px 35px rgba(15, 23, 42, 0.3);
+    overflow-y: auto;
+  }
+
+  .chat-layout__sidebar--open {
+    transform: translateX(0);
+  }
+
+  .chat-layout__mobile-bar {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 15;
+  }
+
+  .app-shell {
+    padding: 0.75rem;
+    overflow: hidden;
   }
 
   .chat-layout__content {
-    order: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .chat-layout__mobile-bar {
+    margin-bottom: 0.5rem;
+  }
+
+  .chat-placeholder,
+  .chat-room {
+    padding: 1.25rem;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .auth-page,
+  .join-page {
+    padding: 1.5rem;
+    border-radius: 1rem;
+  }
+
+  .chat-room__header {
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
 
   .chat-room__content {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chat-room__messages {
+    max-height: none;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .user-input {
+    flex-direction: column;
+    margin-top: 0.75rem;
+  }
+
+  .user-input button {
+    width: 100%;
+  }
+
+  .join-page__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .chat-layout__sidebar .join-page__header input,
+  .chat-layout__sidebar .join-page__header button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    line-height: 1.4;
+  }
+
+  .app-shell {
+    padding: 0.5rem;
+  }
+
+  .chat-layout {
+    gap: 0.75rem;
+    min-height: 100%;
+    height: calc(100svh - 1rem);
+  }
+
+  .chat-layout__sidebar {
+    inset: 0.5rem;
+    max-width: calc(100% - 1rem);
+    height: calc(100% - 1rem);
+    padding: 1rem;
+  }
+
+  .chat-placeholder,
+  .chat-room,
+  .join-page,
+  .auth-page {
+    padding: 1rem;
+  }
+
+  .chat-room__header h1 {
+    font-size: 1.1rem;
+  }
+
+  .message {
+    max-width: 100%;
+  }
+
+  .user-input {
+    gap: 0.5rem;
+  }
+
+  .join-page__footer,
+  .auth-form,
+  .join-form {
+    gap: 0.75rem;
+  }
+
+  .join-page__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sidebar-toggle {
+    width: 40px;
+    height: 40px;
   }
 }

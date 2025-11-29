@@ -25,6 +25,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
   const [searchResults, setSearchResults] = useState(normalizeSearchResults())
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -58,6 +59,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
   const handleSelectConversation = (room) => {
     setRoom(room)
     setIsChat(true)
+    setIsSidebarOpen(false)
     onJoin({ room: room })
   }
 
@@ -65,6 +67,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
     const fetchRoom = await roomService.joinRoom(room)
     setRoom(fetchRoom)
     setIsChat(true)
+    setIsSidebarOpen(false)
     onJoin({ room: fetchRoom })
   }
 
@@ -97,7 +100,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
 
   return (
     <section className="chat-layout">
-      <aside className="chat-layout__sidebar">
+      <aside className={`chat-layout__sidebar ${isSidebarOpen ? 'chat-layout__sidebar--open' : ''}`}>
         <div className="join-page__header">
           <input
             type="text"
@@ -140,6 +143,20 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
       </aside>
 
       <div className="chat-layout__content">
+        <div className="chat-layout__mobile-bar">
+          <button
+            type="button"
+            className={`sidebar-toggle ${isSidebarOpen ? 'sidebar-toggle--open' : ''}`}
+            onClick={() => setIsSidebarOpen((prevState) => !prevState)}
+          >
+            <span className="sidebar-toggle__icon" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+            <span className="sr-only">{isSidebarOpen ? 'Đóng danh sách hội thoại' : 'Mở danh sách hội thoại'}</span>
+          </button>
+        </div>
         {isChat && chatUser ? (
           <ChatRoom key={room.id ?? room} room={room} onLeave={onLeave} />
         ) : (
@@ -190,6 +207,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
           </div>
         )}
       </div>
+      {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />}
     </section>
   )
 }
