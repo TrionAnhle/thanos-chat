@@ -2,21 +2,29 @@ import { useEffect, useMemo, useState } from 'react'
 import ChatRoom from './ChatRoom.jsx'
 import userService from '../services/userService.js'
 import roomService from '../services/roomService.js'
+import { loadAuthSession } from '../services/authStorage.js'
 
+const normalizeSearchResults = (payload) => {
+  if (!payload) {
+    return { rooms: [], users: [] }
+  }
+  if (Array.isArray(payload)) {
+    return { rooms: payload, users: [] }
+  }
+  const rooms = Array.isArray(payload.rooms) ? payload.rooms : []
+  const users = Array.isArray(payload.users) ? payload.users : []
+  return { rooms, users }
+}
 
-const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onLeave }) => {
-  const [username, setUsername] = useState(defaultUsername)
+const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
+  const [authState, setAuthState] = useState({})
   const [room, setRoom] = useState('general')
   const [recentRooms, setRecentRooms] = useState([])
   const [isChat, setIsChat] = useState(false)
   const [search, setSearch] = useState('')
-  const [searchResults, setSearchResults] = useState([])
+  const [searchResults, setSearchResults] = useState(normalizeSearchResults())
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState(null)
-
-  useEffect(() => {
-    setUsername(defaultUsername)
-  }, [defaultUsername])
 
   useEffect(() => {
     let isMounted = true
@@ -36,6 +44,7 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
       }
     }
 
+    setAuthState(loadAuthSession());
     fetchRecentChats()
 
     return () => {
@@ -49,12 +58,7 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
   const handleSelectConversation = (roomName) => {
     setRoom(roomName)
     setIsChat(true)
-    const trimmedName = username.trim()
-    if (!trimmedName) {
-      return
-    }
-
-    onJoin({ username: trimmedName, room: roomName })
+    onJoin({ room: roomName })
   }
 
   const handleSearch = async (event) => {
@@ -62,7 +66,7 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
     setIsChat(false)
     const trimmedSearch = search.trim()
     if (!trimmedSearch) {
-      setSearchResults([])
+      setSearchResults(normalizeSearchResults())
       setSearchError(null)
       return
     }
@@ -70,18 +74,19 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
     setIsSearching(true)
     setSearchError(null)
     try {
-      const rooms = await roomService.searchRooms({ name: trimmedSearch })
-      const formattedRooms = Array.isArray(rooms) ? rooms : rooms?.rooms ?? []
-      setSearchResults(formattedRooms)
+      const results = await roomService.searchRooms({ name: trimmedSearch })
+      setSearchResults(normalizeSearchResults(results))
     } catch (error) {
-      console.error('Failed to search rooms', error)
-      setSearchResults([])
-      setSearchError('Không thể tìm kiếm phòng. Vui lòng thử lại.')
+      console.error('Failed to search', error)
+      setSearchResults(normalizeSearchResults())
+      setSearchError('Not found. Please retry')
     } finally {
       setIsSearching(false)
     }
 
   }
+
+  const hasSearchResults = searchResults.rooms.length > 0 || searchResults.users.length > 0
 
   return (
     <section className="chat-layout">
@@ -90,7 +95,7 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
           <input
             type="text"
             name="message"
-            placeholder="Find new room ..."
+            placeholder="Search..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             autoComplete="off"
@@ -119,7 +124,7 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
         </div>
         <div className="join-page__footer">
           <div>
-            {username}
+            {`${authState?.name}(${authState?.username})`}
           </div>
           <button type="button" className="link-button" onClick={onLogout}>
             Log out
@@ -131,27 +136,47 @@ const MainPage = ({ onJoin, defaultUsername = '', onLogout, email, chatUser, onL
         {isChat && chatUser ? (
           <ChatRoom key={room.id ?? room} room={room} onLeave={onLeave} />
         ) : (
-          <div className="chat-placeholder">
+          <div className={`chat-placeholder ${isSearching || hasSearchResults ? 'chat-placeholder--top' : ''}`}>
             {isSearching ? (
-              <p>Đang tìm phòng...</p>
-            ) : searchResults.length > 0 ? (
+              <p>Đang tìm kiếm...</p>
+            ) : hasSearchResults ? (
               <>
-                <h2>Kết quả tìm kiếm</h2>
-                <ul className="search-results">
-                  {searchResults.map((roomResult) => (
-                    <li key={roomResult.id} className="search-results__item">
-                      <button type="button" onClick={() => handleSelectConversation(roomResult)}>
-                        <strong>{roomResult.name}</strong>
-                        <span>{roomResult.description ?? 'Không có mô tả'}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <h2>Search Result</h2>
+                {searchResults.rooms.length > 0 && (
+                  <>
+                    <h3 className="search-results__heading">Room</h3>
+                    <ul className="search-results">
+                      {searchResults.rooms.map((roomResult) => (
+                        <li key={roomResult.id} className="search-results__item">
+                          <button type="button" onClick={() => handleSelectConversation(roomResult)}>
+                            <strong>{roomResult.type === 'GROUP' ? `#${roomResult.name}` : roomResult.name}</strong>
+                            <span>{roomResult.description ?? 'No description'}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {searchResults.users.length > 0 && (
+                  <>
+                    <h3 className="search-results__heading">User</h3>
+                    <ul className="search-results">
+                      {searchResults.users.map((userResult) => (
+                        <li key={userResult.id} className="search-results__item">
+                          <button type="button" onClick={() => handleSelectConversation(userResult)}>
+                            <strong>{userResult.name}</strong>
+                            <span>{userResult.description ?? 'No description'}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </>
             ) : (
               <>
-                <h2>Chọn một cuộc trò chuyện</h2>
-                <p>Hãy chọn một phòng ở bên trái hoặc nhập tên phòng mới để bắt đầu.</p>
+                <h2>Select a conversation</h2>
+                <p>Choose a room on the left or enter a new room name to start.</p>
               </>
             )}
             {searchError && <p className="chat-room__empty">{searchError}</p>}

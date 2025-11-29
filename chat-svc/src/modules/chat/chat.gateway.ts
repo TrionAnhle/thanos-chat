@@ -51,8 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { roomId: string },
   ) {
-    const room = ChatType.GROUP + payload.roomId;
-    await this.chatService.join(client, room);
+    await this.chatService.join(client, payload.roomId);
   }
 
   @SubscribeMessage(ChatEvents.SEND_MESSAGE)
