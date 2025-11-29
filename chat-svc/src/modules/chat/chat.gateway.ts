@@ -51,8 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { roomId: string },
   ) {
-    const room = ChatType.GROUP + payload.roomId;
-    await this.chatService.join(client, room);
+    await this.chatService.join(client, payload.roomId);
   }
 
   @SubscribeMessage(ChatEvents.SEND_MESSAGE)
@@ -65,14 +64,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       authorId: client.data.user.id,
       content: dto.content,
     });
-    const roomChannel = dto.type + dto.roomId;
     const sendMsg = {
+      id: msg.id,
       authorId: msg.senderId,
       type: MessageType.MESSAGE,
       username: client.data.user.username,
+      name: client.data.user.name,
       content: msg.content,
+      timestamp: msg.createdAt,
     };
-    this.io.to(roomChannel).emit(ChatEvents.NEW_MESSAGE, sendMsg);
+    this.io.to(dto.roomId).emit(ChatEvents.NEW_MESSAGE, sendMsg);
   }
 
   async onNotify(

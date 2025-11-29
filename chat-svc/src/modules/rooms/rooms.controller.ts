@@ -6,6 +6,9 @@ import {
   UseGuards,
   Request,
   Query,
+  Param,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
@@ -31,5 +34,14 @@ export class RoomsController {
   @Post('join')
   join(@Body() joinRoomDto: JoinRoomDto, @Request() req) {
     return this.roomsService.join(req.user.id, joinRoomDto);
+  }
+
+  @Get(':roomId/messages')
+  getMessages(
+    @Param('roomId') roomId: string,
+    @Query('timestamp') timestamp: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.roomsService.getMessages(roomId, timestamp, limit);
   }
 }

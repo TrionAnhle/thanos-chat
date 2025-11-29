@@ -23,9 +23,11 @@ export class AuthService {
       );
     }
 
-    const payload = { username: user.username, id: user.id };
+    const payload = { username: user.username, id: user.id, name: user.name };
     return {
       access_token: this.jwtService.sign(payload),
+      id: user.id,
+      name: user.name,
     };
   }
 
@@ -40,9 +42,11 @@ export class AuthService {
       );
     }
     const user = await this.usersService.create(req);
-    const payload = { username: user.username, id: user.id };
+    const payload = { username: user.username, id: user.id, name: user.name };
     return {
       access_token: this.jwtService.sign(payload),
+      id: user.id,
+      name: user.name,
     };
   }
 }

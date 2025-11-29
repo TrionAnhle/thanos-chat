@@ -13,4 +13,10 @@ export class UsersController {
     // req.user is populated by the JwtStrategy
     return this.usersService.findOne(req.user.id);
   }
+
+  @Get('recent/chat')
+  getRecentChats(@Request() req) {
+    // req.user is populated by the JwtStrategy
+    return this.usersService.getChatRecent(req.user.id);
+  }
 }
