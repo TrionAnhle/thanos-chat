@@ -55,10 +55,17 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
 
   const activeRoom = useMemo(() => chatUser?.room ?? null, [chatUser])
 
-  const handleSelectConversation = (roomName) => {
-    setRoom(roomName)
+  const handleSelectConversation = (room) => {
+    setRoom(room)
     setIsChat(true)
-    onJoin({ room: roomName })
+    onJoin({ room: room })
+  }
+
+  const handleJoinRoomAfterSearch = async (room) => {
+    const fetchRoom = await roomService.joinRoom(room)
+    setRoom(fetchRoom)
+    setIsChat(true)
+    onJoin({ room: fetchRoom })
   }
 
   const handleSearch = async (event) => {
@@ -148,7 +155,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
                     <ul className="search-results">
                       {searchResults.rooms.map((roomResult) => (
                         <li key={roomResult.id} className="search-results__item">
-                          <button type="button" onClick={() => handleSelectConversation(roomResult)}>
+                          <button type="button" onClick={() => handleJoinRoomAfterSearch(roomResult)}>
                             <strong>{roomResult.type === 'GROUP' ? `#${roomResult.name}` : roomResult.name}</strong>
                             <span>{roomResult.description ?? 'No description'}</span>
                           </button>
@@ -163,7 +170,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
                     <ul className="search-results">
                       {searchResults.users.map((userResult) => (
                         <li key={userResult.id} className="search-results__item">
-                          <button type="button" onClick={() => handleSelectConversation(userResult)}>
+                          <button type="button" onClick={() => handleJoinRoomAfterSearch(userResult)}>
                             <strong>{userResult.name}</strong>
                             <span>{userResult.description ?? 'No description'}</span>
                           </button>

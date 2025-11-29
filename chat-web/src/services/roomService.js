@@ -1,60 +1,69 @@
-import apiClient from './apiClient.js'
-import { loadAuthSession } from './authStorage.js'
+import apiClient from "./apiClient.js";
+import { loadAuthSession } from "./authStorage.js";
 
 const getAuthToken = () => {
-  const session = loadAuthSession()
-  const token = session?.token
+  const session = loadAuthSession();
+  const token = session?.token;
   if (!token) {
-    throw new Error('Authentication token is required')
+    throw new Error("Authentication token is required");
   }
-  return token
-}
+  return token;
+};
 
 const buildAuthHeaders = () => {
-  const token = getAuthToken()
-  return { Authorization: `Bearer ${token}` }
-}
+  const token = getAuthToken();
+  return { Authorization: `Bearer ${token}` };
+};
 
 const toIsoTimestamp = (value) => {
   if (value === undefined || value === null) {
-    return null
+    return null;
   }
-  const date = value instanceof Date ? value : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
-}
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
 
 const searchRooms = async ({ name, signal } = {}) => {
-  const headers = buildAuthHeaders()
-  const params = new URLSearchParams()
+  const headers = buildAuthHeaders();
+  const params = new URLSearchParams();
   if (name) {
-    params.set('name', name)
+    params.set("name", name);
   }
-  const query = params.toString()
-  const path = query ? `/rooms?${query}` : '/rooms'
-  return await apiClient.get(path, { headers, signal })
-}
+  const query = params.toString();
+  const path = query ? `/rooms?${query}` : "/rooms";
+  return await apiClient.get(path, { headers, signal });
+};
 
 const getMessages = async ({ roomId, timestamp, limit, signal } = {}) => {
-  const headers = buildAuthHeaders()
-  const params = new URLSearchParams()
-  const isoTimestamp = toIsoTimestamp(timestamp)
+  const headers = buildAuthHeaders();
+  const params = new URLSearchParams();
+  const isoTimestamp = toIsoTimestamp(timestamp);
   if (isoTimestamp) {
-    params.set('timestamp', isoTimestamp)
+    params.set("timestamp", isoTimestamp);
   }
 
   if (limit) {
-    params.set('limit', limit)
+    params.set("limit", limit);
   }
 
-  const query = params.toString()
-  const path = query ? `/rooms/${roomId}/messages?${query}` : `/rooms/${roomId}/messages`
+  const query = params.toString();
+  const path = query
+    ? `/rooms/${roomId}/messages?${query}`
+    : `/rooms/${roomId}/messages`;
 
-  return await apiClient.get(path, { headers, signal })
-}
+  return await apiClient.get(path, { headers, signal });
+};
+
+const joinRoom = async ({ id, type }) => {
+  const headers = buildAuthHeaders();
+  const data = { id, type };
+  return await apiClient.post("/rooms/join", data, { headers });
+};
 
 const roomService = {
+  joinRoom,
   searchRooms,
   getMessages,
-}
+};
 
-export default roomService
+export default roomService;

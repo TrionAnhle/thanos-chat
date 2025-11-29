@@ -101,22 +101,38 @@ export class RoomsService {
   }
 
   async join(userId: string, req: JoinRoomDto) {
-    let room = await this.findRoom(req.roomId);
+    let room = await this.findRoom(req.id);
     const user = await this.findUser(userId);
+    let receiveUser;
 
     if (!room) {
       if (ChatType.GROUP === req.type) {
         throw new DomainException(DomainCode.ROOM_NOT_FOUND);
       } else {
-        room = await this.prisma.chatRoom.create({
-          data: {
-            name: userId + '/' + req.roomId,
-            description: 'Direct message group',
-            participantIds: [userId, req.roomId],
-            ownerId: userId,
+        receiveUser = await this.findUser(req.id);
+        room = await this.prisma.chatRoom.findFirst({
+          where: {
             type: ChatType.USER,
+            participantIds: { hasEvery: [userId, req.id] },
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            participantIds: true,
           },
         });
+        if (!room) {
+          room = await this.prisma.chatRoom.create({
+            data: {
+              name: userId + '/' + req.id,
+              description: 'Direct message group',
+              participantIds: [userId, req.id],
+              ownerId: userId,
+              type: ChatType.USER,
+            },
+          });
+        }
       }
     }
 
@@ -127,7 +143,7 @@ export class RoomsService {
 
     return {
       id: room.id,
-      name: room.name,
+      name: ChatType.GROUP === req.type ? room.name : receiveUser?.name,
       description: room.description,
     };
   }

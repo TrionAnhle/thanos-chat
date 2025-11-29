@@ -66,14 +66,25 @@ export class ChatService {
 
     const roomIds = latestMessages.map((msg) => msg.chatRoomId);
     const roomMap = await this.getRoomMap(roomIds);
-    const missingRoomIds = roomIds.filter((id) => !roomMap.has(id));
+    const missingRoomIds = [
+      ...new Set(
+        [...roomMap.values()]
+          .filter((room) => room.type === ChatType.USER)
+          .flatMap((room) =>
+            room.participantIds.filter((participant) => participant !== userId),
+          ),
+      ),
+    ];
     const userMap = await this.getUserMap(missingRoomIds);
 
-    return latestMessages.map((msg) => ({
-      ...msg,
-      chatRoom:
-        roomMap.get(msg.chatRoomId) ?? userMap.get(msg.chatRoomId) ?? null,
-    }));
+    return latestMessages.map((msg) => {
+      const room = roomMap.get(msg.chatRoomId);
+      const resolvedRoom = this.resolveChatRoom(room, userMap, userId);
+      return {
+        ...msg,
+        chatRoom: resolvedRoom ? this.stripParticipantIds(resolvedRoom) : null,
+      };
+    });
   }
 
   private async getRoomMap(roomIds: string[]) {
@@ -84,20 +95,17 @@ export class ChatService {
 
     const rooms = await this.prisma.chatRoom.findMany({
       where: { id: { in: uniqueIds } },
-      select: {
-        id: true,
-        name: true,
-      },
     });
 
     return new Map<string, ChatRoomInfo>(
       rooms.map((room) => [
         room.id,
         {
-          type: ChatType.GROUP,
+          type: room.type as ChatType,
           id: room.id,
           name: room.name,
           username: null,
+          participantIds: room.participantIds,
         },
       ]),
     );
@@ -109,11 +117,6 @@ export class ChatService {
 
     const users = await this.prisma.user.findMany({
       where: { id: { in: uniqueIds } },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-      },
     });
 
     return new Map<string, ChatRoomInfo>(
@@ -124,6 +127,7 @@ export class ChatService {
           id: user.id,
           name: user.name ?? user.username,
           username: user.username,
+          participantIds: [],
         },
       ]),
     );
@@ -143,6 +147,29 @@ export class ChatService {
       if (room !== client.id) await client.leave(room);
     }
   }
+
+  private resolveChatRoom(
+    room: ChatRoomInfo | undefined,
+    userMap: Map<string, ChatRoomInfo>,
+    userId: string,
+  ): ChatRoomInfo | null {
+    if (!room) return null;
+    if (room.type !== ChatType.USER) return room;
+
+    const otherUserId = room.participantIds.find(
+      (participant) => participant !== userId,
+    );
+    const userInfo = otherUserId ? userMap.get(otherUserId) : undefined;
+
+    return userInfo
+      ? { ...userInfo, id: room.id, participantIds: room.participantIds }
+      : room;
+  }
+
+  private stripParticipantIds(room: ChatRoomInfo): PublicChatRoomInfo {
+    const { participantIds: _omit, ...rest } = room;
+    return rest;
+  }
 }
 
 type LatestMessageRaw = {
@@ -155,12 +182,15 @@ type LatestMessageRaw = {
 };
 
 type LatestMessage = LatestMessageRaw & {
-  chatRoom: ChatRoomInfo | null;
+  chatRoom: PublicChatRoomInfo | null;
 };
 
 type ChatRoomInfo = {
   type: ChatType;
   id: string;
   name: string;
-  username: string;
+  username: string | null;
+  participantIds: string[];
 };
+
+type PublicChatRoomInfo = Omit<ChatRoomInfo, 'participantIds'>;

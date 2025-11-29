@@ -201,18 +201,8 @@ const ChatRoom = ({room, onLeave }) => {
         type: roomType,
         content: text,
       })
-      if (roomType === 'USER') {
-        const newMsg = {
-          id: `optimistic-${Date.now()}`,
-          authorId: session?.id,
-          type: roomType,
-          content: text,
-          timestamp: new Date().toISOString(),
-        }
-        setMessages((prevMessages) => sortMessagesAscending([...prevMessages, newMsg]))
-      }
     },
-    [roomId, roomType, session?.id, socket],
+    [roomId, roomType, socket],
   )
 
   return (
