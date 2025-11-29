@@ -74,6 +74,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
   const handleSearch = async (event) => {
     event?.preventDefault?.()
     setIsChat(false)
+    setIsSidebarOpen(false)
     const trimmedSearch = search.trim()
     if (!trimmedSearch) {
       setSearchResults(normalizeSearchResults())
