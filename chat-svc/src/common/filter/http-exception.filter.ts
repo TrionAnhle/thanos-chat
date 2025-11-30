@@ -9,10 +9,10 @@ import { Response } from 'express';
 import { DomainException } from './domain.exception';
 import { DomainCode, DomainCodeMessage } from './domain.code';
 
-
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
+    console.log(exception);
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
