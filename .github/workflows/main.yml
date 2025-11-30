@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -9,14 +9,28 @@ permissions:
   contents: read
 
 jobs:
-  backend:
-    name: Build chat service
+  # ============================================================
+  # 1️⃣ BUILD PHASE - Build backend và frontend song song
+  # ============================================================
+  build:
+    name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [chat-svc, chat-web]
+        include:
+          - service: chat-svc
+            image_name: thanos-svc
+          - service: chat-web
+            image_name: thanos-web
+
     defaults:
       run:
-        working-directory: chat-svc
+        working-directory: ${{ matrix.service }}
+
     steps:
-      - name: Checkout
+      - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -24,19 +38,23 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: chat-svc/package-lock.json
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Lint & Build
+        run: |
+          if [ -f package.json ]; then
+            npm run lint --if-present
+            npm run build
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Read service version
-        id: svc_version
+      - name: Read version
+        id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -44,66 +62,36 @@ jobs:
       - name: Docker build (no push)
         uses: docker/build-push-action@v5
         with:
-          context: ./chat-svc
-          file: ./chat-svc/Dockerfile
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
           push: false
           build-args: |
-            APP_VERSION=${{ steps.svc_version.outputs.version }}
-          tags: tuananh1001lk/thanos-svc:${{ steps.svc_version.outputs.version }}
+            APP_VERSION=${{ steps.version.outputs.version }}
+          tags: tuananh1001lk/${{ matrix.image_name }}:${{ steps.version.outputs.version }}
 
-  frontend:
-    name: Build chat web
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: chat-web
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Upload metadata for next job
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: chat-web/package-lock.json
+          name: version-${{ matrix.service }}
+          path: ${{ matrix.service }}/package.json
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Read web version
-        id: web_version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Docker build (no push)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./chat-web
-          file: ./chat-web/Dockerfile
-          push: false
-          build-args: |
-            APP_VERSION=${{ steps.web_version.outputs.version }}
-          tags: tuananh1001lk/thanos-web:${{ steps.web_version.outputs.version }}
-  
+  # ============================================================
+  # 2️⃣ PUBLISH PHASE - Push image lên Docker Hub
+  # ============================================================
   publish:
-    name: Push Images
+    name: Push Docker images
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
-    if: github.ref == 'refs/heads/develop'
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/prod'
+
     steps:
-      - name: Checkout
+      - name: Checkout source code
         uses: actions/checkout@v4
+
+      - name: Download versions from build
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -111,40 +99,21 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Read backend version
-        id: svc_version
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
         working-directory: chat-svc
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          docker build -t tuananh1001lk/thanos-svc:$VERSION -t tuananh1001lk/thanos-svc:latest .
+          docker push tuananh1001lk/thanos-svc:$VERSION
+          docker push tuananh1001lk/thanos-svc:latest
 
-      - name: Read frontend version
-        id: web_version
+      - name: Build and push frontend
         working-directory: chat-web
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./chat-svc
-          file: ./chat-svc/Dockerfile
-          push: true
-          build-args: |
-            APP_VERSION=${{ steps.svc_version.outputs.version }}
-          tags: |
-            tuananh1001lk/thanos-svc:${{ steps.svc_version.outputs.version }}
-            tuananh1001lk/thanos-svc:latest
-
-      - name: Push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./chat-web
-          file: ./chat-web/Dockerfile
-          push: true
-          build-args: |
-            APP_VERSION=${{ steps.web_version.outputs.version }}
-          tags: |
-            tuananh1001lk/thanos-web:${{ steps.web_version.outputs.version }}
-            tuananh1001lk/thanos-web:latest
+          docker build -t tuananh1001lk/thanos-web:$VERSION -t tuananh1001lk/thanos-web:latest .
+          docker push tuananh1001lk/thanos-web:$VERSION
+          docker push tuananh1001lk/thanos-web:latest
