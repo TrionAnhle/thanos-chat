@@ -37,7 +37,9 @@ jobs:
 
       - name: Read service version
         id: svc_version
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Docker build (no push)
         uses: docker/build-push-action@v5
@@ -80,7 +82,9 @@ jobs:
 
       - name: Read web version
         id: web_version
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Docker build (no push)
         uses: docker/build-push-action@v5
@@ -110,12 +114,16 @@ jobs:
       - name: Read backend version
         id: svc_version
         working-directory: chat-svc
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Read frontend version
         id: web_version
         working-directory: chat-web
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push backend image
         uses: docker/build-push-action@v5
