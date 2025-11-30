@@ -8,6 +8,8 @@ services:
       - JWT_SECRET=change-me
     deploy:
       replicas: 3
+    ports:
+      - "3000-3009:3000"
     networks:
       - vps-net
 
