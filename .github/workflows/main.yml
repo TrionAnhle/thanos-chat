@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -9,64 +9,154 @@ permissions:
   contents: read
 
 jobs:
-  backend:
-    name: Chat Service
+  # ============================================================
+  # 1️⃣ BUILD PHASE - Build backend và frontend song song
+  # ============================================================
+  build:
+    name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [chat-svc, chat-web]
+        include:
+          - service: chat-svc
+            image_name: thanos-svc
+          - service: chat-web
+            image_name: thanos-web
+
     defaults:
       run:
+        working-directory: ${{ matrix.service }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint & Build
+        run: |
+          if [ -f package.json ]; then
+            npm run lint --if-present
+            npm run build
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Docker build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: false
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+          tags: tuananh1001lk/${{ matrix.image_name }}:${{ steps.version.outputs.version }}
+
+      - name: Upload metadata for next job
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-${{ matrix.service }}
+          path: ${{ matrix.service }}/package.json
+
+  # ============================================================
+  # 2️⃣ PUBLISH PHASE - Push image lên Docker Hub
+  # ============================================================
+  publish:
+    name: Push Docker images
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download versions from build
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
         working-directory: chat-svc
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          docker build -t tuananh1001lk/thanos-svc:$VERSION -t tuananh1001lk/thanos-svc:latest .
+          docker push tuananh1001lk/thanos-svc:$VERSION
+          docker push tuananh1001lk/thanos-svc:latest
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: chat-svc/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-  frontend:
-    name: Chat Web
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      - name: Build and push frontend
         working-directory: chat-web
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          docker build -t tuananh1001lk/thanos-web:$VERSION -t tuananh1001lk/thanos-web:latest .
+          docker push tuananh1001lk/thanos-web:$VERSION
+          docker push tuananh1001lk/thanos-web:latest
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: chat-web/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-  
-    deploy:
-    name: Deploy Prod
+  # ============================================================
+  # 3️⃣ DEPLOY PHASE - Chỉ chạy khi branch = prod
+  # ============================================================
+  deploy:
+    name: Deploy to Production Server
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: publish
     if: github.ref == 'refs/heads/prod'
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy
-        run: echo "Deploying to prod... replace with real deployment commands"
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "~/thanos-chat"
 
+      - name: SSH to server and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🚀 Deploying Thanos Chat System..."
+            cd ~/thanos-chat
+
+            echo "🧹 Stopping and removing existing containers..."
+            docker compose down --remove-orphans || true
+
+            echo "⬇️ Pulling latest images..."
+            docker compose pull
+
+            echo "🔄 Starting fresh containers..."
+            docker compose up -d
+
+            echo "✅ Deployment completed successfully!"

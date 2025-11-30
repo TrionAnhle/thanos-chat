@@ -168,6 +168,8 @@ export class ChatService {
 
   private stripParticipantIds(room: ChatRoomInfo): PublicChatRoomInfo {
     const { participantIds: _omit, ...rest } = room;
+    // participantIds is intentionally dropped to keep public info only
+    void _omit;
     return rest;
   }
 }
