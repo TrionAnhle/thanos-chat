@@ -1,23 +1,17 @@
-version: "3.9"
-
 services:
   chat-svc:
-    container_name: thanos-svc
     image: tuananh1001lk/thanos-svc:latest
-    deploy:
-      replicas: 3
     environment:
       - DATABASE_URL=mongodb://admin:123456@mongo:27017/thanos?authSource=admin&replicaSet=rs0&directConnection=true
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=change-me
-    ports:
-      - "3000-3009:3000"
+    deploy:
+      replicas: 3
     networks:
       - vps-net
 
   chat-web:
-    container_name: thanos-web
     image: tuananh1001lk/thanos-web:latest
     depends_on:
       - chat-svc

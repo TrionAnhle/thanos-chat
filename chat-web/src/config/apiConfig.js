@@ -7,7 +7,7 @@ const normalizeBaseUrl = (rawUrl) => {
 }
 
 const API_CONFIG = Object.freeze({
-  baseUrl: normalizeBaseUrl(import.meta.env.VITE_API_URL ?? 'http://163.223.8.148:3000'),
+  baseUrl: normalizeBaseUrl(import.meta.env.VITE_API_URL ?? 'http://163.223.8.148/thanos/api/'),
   timeout: Number(import.meta.env.VITE_API_TIMEOUT ?? 10000),
   defaultHeaders: {
     'Content-Type': 'application/json',
