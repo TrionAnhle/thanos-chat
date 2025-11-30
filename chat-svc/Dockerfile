@@ -1,25 +1,13 @@
-ARG DATABASE_URL=mongodb://localhost:27017/thanos
-ARG APP_VERSION
-
 FROM node:20-alpine AS base
-ARG DATABASE_URL
-ARG APP_VERSION
-ENV DATABASE_URL=${DATABASE_URL}
 WORKDIR /app
 # Required by Prisma on Alpine
 RUN apk add --no-cache openssl
 
 FROM base AS deps
-ARG APP_VERSION
-ARG DATABASE_URL
 COPY package*.json ./
-ENV DATABASE_URL=${DATABASE_URL}
 RUN npm ci
 
 FROM deps AS builder
-ARG APP_VERSION
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
 COPY . .
 RUN npm run build && npx prisma generate
 # Keep only production dependencies
