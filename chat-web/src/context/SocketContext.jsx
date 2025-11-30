@@ -16,7 +16,7 @@ const buildSocketAuth = () => {
 
 const SocketProvider = ({ children }) => {
   const [socket] = useState(() =>
-    io(import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:3000/chat', {
+    io(import.meta.env.VITE_SOCKET_URL ?? 'http://163.223.8.148:3000/chat', {
       autoConnect: false,
       auth: buildSocketAuth(),
       transports: ['websocket'],
