@@ -97,7 +97,7 @@ jobs:
           tags: tuananh1001lk/thanos-web:${{ steps.web_version.outputs.version }}
   
   publish:
-    name: Build & Push Images
+    name: Push Images
     runs-on: ubuntu-latest
     needs: [backend, frontend]
     if: github.ref == 'refs/heads/develop'
@@ -125,7 +125,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Build & push backend image
+      - name: Push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./chat-svc
@@ -137,7 +137,7 @@ jobs:
             tuananh1001lk/thanos-svc:${{ steps.svc_version.outputs.version }}
             tuananh1001lk/thanos-svc:latest
 
-      - name: Build & push frontend image
+      - name: Push frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./chat-web
