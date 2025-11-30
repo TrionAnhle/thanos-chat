@@ -9,7 +9,7 @@ RUN npm ci
 
 FROM deps AS builder
 COPY . .
-RUN npm run build && npx prisma generate
+RUN npx prisma generate && npm run build
 # Keep only production dependencies
 RUN npm prune --omit=dev
 

@@ -59,7 +59,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Docker build (no push)
+      - name: Docker build
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
