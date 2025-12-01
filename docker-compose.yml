@@ -2,10 +2,13 @@ services:
   chat-svc:
     image: tuananh1001lk/thanos-svc:latest
     environment:
-      - DATABASE_URL=mongodb://admin:123456@mongo:27017/thanos?authSource=admin&replicaSet=rs0&directConnection=true
+      - DATABASE_URL=${DATABASE_URL}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=change-me
+      - JWT_SECRET=${JWT_SECRET}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
     deploy:
       replicas: 3
     ports:

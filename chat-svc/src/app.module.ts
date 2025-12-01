@@ -4,9 +4,17 @@ import { ChatModule } from './modules/chat/chat.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
+import { ImagesModule } from './modules/images/images.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, ChatModule, AuthModule, RoomsModule],
+  imports: [
+    PrismaModule,
+    UsersModule,
+    ChatModule,
+    AuthModule,
+    RoomsModule,
+    ImagesModule,
+  ],
   controllers: [],
   providers: [],
 })
