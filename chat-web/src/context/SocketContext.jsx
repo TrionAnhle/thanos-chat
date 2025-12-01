@@ -16,7 +16,8 @@ const buildSocketAuth = () => {
 
 const SocketProvider = ({ children }) => {
   const [socket] = useState(() =>
-    io(import.meta.env.VITE_SOCKET_URL ?? 'http://163.223.8.148/thanos/ws/chat', {
+    io(import.meta.env.VITE_SOCKET_URL ?? 'http://163.223.8.148', {
+      path: '/thanos/ws/chat',
       autoConnect: false,
       auth: buildSocketAuth(),
       transports: ['websocket'],
