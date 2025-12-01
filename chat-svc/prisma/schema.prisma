@@ -32,10 +32,10 @@ model User {
 }
 
 model ChatRoom {
-  id   String  @id @default(auto()) @map("_id") @db.ObjectId
-  name String
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
   description String?
-  type String?
+  type        String?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -61,7 +61,7 @@ model Message {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  image String
+  image String?
 
   // --- Relations ---
   // The user who sent the message.
