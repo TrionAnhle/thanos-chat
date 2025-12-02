@@ -11,6 +11,7 @@ export class ImagesService {
     const endpoint = process.env.MINIO_ENDPOINT || 'http://localhost:9000';
     const accessKey = process.env.MINIO_ACCESS_KEY || 'admin';
     const secretKey = process.env.MINIO_SECRET_KEY || 'password!';
+    const region = process.env.MINIO_REGION || 'us-east-1';
     this.bucket = process.env.MINIO_BUCKET || 'thanos';
     this.pathPrefix = process.env.MINIO_BUCKET_PREFIX || 'img';
 
@@ -23,6 +24,7 @@ export class ImagesService {
       useSSL,
       accessKey,
       secretKey,
+      region,
     });
   }
 
