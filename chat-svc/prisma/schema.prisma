@@ -55,13 +55,13 @@ model ChatRoom {
 // Represents a single message within a ChatRoom.
 model Message {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
-  content String // The text content of the message.
+  content String? // The text content of the message.
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  image String?
+  file String?
 
   // --- Relations ---
   // The user who sent the message.

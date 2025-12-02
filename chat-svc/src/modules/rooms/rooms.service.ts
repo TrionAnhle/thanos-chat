@@ -241,6 +241,7 @@ export class RoomsService {
       username: msg.sender?.username,
       name: msg.sender?.name ?? msg.sender?.username ?? null,
       content: msg.content,
+      file: msg.file,
       timestamp: msg.createdAt.toISOString(),
     }));
   }

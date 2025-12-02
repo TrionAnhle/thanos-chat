@@ -13,12 +13,14 @@ export class ChatService {
     roomId: string;
     authorId: string;
     content: string;
+    file: string;
   }) {
     return this.prisma.message.create({
       data: {
         content: input.content,
         senderId: input.authorId,
         chatRoomId: input.roomId,
+        file: input.file,
       },
     });
   }

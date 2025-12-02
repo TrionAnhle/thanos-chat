@@ -63,6 +63,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomId: dto.roomId,
       authorId: client.data.user.id,
       content: dto.content,
+      file: dto.file,
     });
     const sendMsg = {
       id: msg.id,
@@ -72,6 +73,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       name: client.data.user.name,
       content: msg.content,
       timestamp: msg.createdAt,
+      file: msg.file,
     };
     this.io.to(dto.roomId).emit(ChatEvents.NEW_MESSAGE, sendMsg);
   }
