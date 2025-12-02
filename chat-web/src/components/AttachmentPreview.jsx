@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif)$/i
 const PDF_EXTENSIONS = /\.pdf$/i
@@ -63,7 +63,21 @@ const AttachmentPreview = ({
   fileName,
   readOnly = false,
 }) => {
-  const [objectUrl, setObjectUrl] = useState(null)
+  const objectUrl = useMemo(() => {
+    if (!attachment || readOnly) {
+      return null
+    }
+    return URL.createObjectURL(attachment)
+  }, [attachment, readOnly])
+
+  useEffect(
+    () => () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    },
+    [objectUrl],
+  )
 
   const displayName = useMemo(() => {
     if (attachment?.name) {
@@ -85,16 +99,6 @@ const AttachmentPreview = ({
     () => detectFileKind({ attachment, fileUrl }),
     [attachment, fileUrl],
   )
-
-  useEffect(() => {
-    if (!attachment || readOnly) {
-      setObjectUrl(null)
-      return undefined
-    }
-    const nextPreviewUrl = URL.createObjectURL(attachment)
-    setObjectUrl(nextPreviewUrl)
-    return () => URL.revokeObjectURL(nextPreviewUrl)
-  }, [attachment, readOnly])
 
   const isImage = fileKind === 'image'
   const previewSrc = isImage ? (fileUrl ?? objectUrl) : null
