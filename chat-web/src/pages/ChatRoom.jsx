@@ -208,7 +208,7 @@ const ChatRoom = ({room, onLeave }) => {
       if (hasFile) {
         setAttachmentError('')
         try {
-          fileUrl = await imageService.uploadAttachment(selectedAttachment, session?.token)
+          fileUrl = await imageService.uploadAttachment(selectedAttachment)
         } catch (error) {
           console.error('Failed to upload attachment', error)
           setAttachmentError(error.message || 'Could not upload file. Please try again.')

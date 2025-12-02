@@ -1,16 +1,17 @@
 import apiClient from './apiClient.js'
 import { loadAuthSession } from './authStorage.js'
 
-const getAuthToken = (token) => {
-  const resolvedToken = token ?? loadAuthSession()?.token
-  if (!resolvedToken) {
-    throw new Error('Authentication token is required')
+const getAuthToken = () => {
+  const session = loadAuthSession();
+  const token = session?.token;
+  if (!token) {
+    throw new Error("Authentication token is required");
   }
-  return resolvedToken
-}
+  return token;
+};
 
-const requestUploadUrl = async ({ filename, token }) => {
-  const authToken = getAuthToken(token)
+const requestUploadUrl = async ({ filename }) => {
+  const authToken = getAuthToken()
   const headers = { Authorization: `Bearer ${authToken}` }
   return apiClient.post('/images/upload', { filename }, { headers })
 }
@@ -22,8 +23,6 @@ const putFileToPresignedUrl = async (presigned, file) => {
     body: file,
   })
 
-  console.log(response);
-
   if (!response.ok) {
     throw new Error(`Upload failed with status ${response.status}`)
   }
@@ -31,11 +30,11 @@ const putFileToPresignedUrl = async (presigned, file) => {
   return presigned.preview ?? presigned.url?.split('?')[0] ?? presigned.url
 }
 
-const uploadAttachment = async (file, token) => {
+const uploadAttachment = async (file) => {
   if (!file) {
     return null
   }
-  const presigned = await requestUploadUrl({ filename: file.name, token })
+  const presigned = await requestUploadUrl({ filename: file.name })
   if (!presigned?.url) {
     throw new Error('Missing upload URL')
   }
