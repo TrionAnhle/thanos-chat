@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Client as MinioClient } from 'minio';
 
 @Injectable()
@@ -29,7 +30,8 @@ export class ImagesService {
   }
 
   async getUploadSignedUrl(filename: string) {
-    const key = `${this.pathPrefix}/${Date.now()}_${filename}`;
+    const uniqueId = randomUUID().replace(/-/g, '');
+    const key = `${this.pathPrefix}/${Date.now()}_${uniqueId}_${filename}`;
     const expirySeconds = Number(process.env.MINIO_URL_EXPIRE_SECONDS) || 60;
     const url = await this.minio.presignedPutObject(
       this.bucket,

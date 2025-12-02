@@ -1,4 +1,6 @@
-const Message = ({ currentUserId, authorId, name, username, content, timestamp, isSystem }) => {
+import AttachmentPreview from './AttachmentPreview.jsx'
+
+const Message = ({ currentUserId, authorId, name, username, content, timestamp, isSystem, file }) => {
   const formattedTime = timestamp ? new Date(timestamp).toLocaleTimeString() : ''
   const isCurrentUser = currentUserId === authorId
   return (
@@ -10,6 +12,11 @@ const Message = ({ currentUserId, authorId, name, username, content, timestamp, 
         {formattedTime && <time className="message__time">{formattedTime}</time>}
       </header>
       <p className="message__body">{content ?? ''}</p>
+      {file && (
+        <div className="message__attachment">
+          <AttachmentPreview readOnly fileUrl={file} />
+        </div>
+      )}
     </article>
   )
 }

@@ -5,6 +5,7 @@ import useSocket from '../hooks/useSocket.js'
 import ChatEvents from '../config/chatEvents.js'
 import { loadAuthSession } from '../services/authStorage.js'
 import roomService from '../services/roomService.js'
+import imageService from '../services/imageService.js'
 
 const PAGE_LIMIT = 20
 const getTimestampValue = (rawTimestamp) => {
@@ -24,6 +25,9 @@ const ChatRoom = ({room, onLeave }) => {
   const [messages, setMessages] = useState([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [hasMoreHistory, setHasMoreHistory] = useState(true)
+  const [attachment, setAttachment] = useState(null)
+  const [attachmentError, setAttachmentError] = useState('')
+  const shouldAutoScrollRef = useRef(false)
   const messagesContainerRef = useRef(null)
   const roomType = typeof room === 'string' ? 'GROUP' : room?.type ?? 'GROUP'
   const roomTitle = typeof room === 'string' ? room : room?.name ?? room?.username ?? 'Untitled room'
@@ -53,7 +57,6 @@ const ChatRoom = ({room, onLeave }) => {
     }
 
     const abortController = new AbortController()
-    const container = messagesContainerRef.current
 
     const fetchInitialMessages = async () => {
       setIsLoadingHistory(true)
@@ -66,13 +69,9 @@ const ChatRoom = ({room, onLeave }) => {
         })
         const fetchedMessages = extractMessages(response)
         const sortedMessages = sortMessagesAscending(fetchedMessages)
+        shouldAutoScrollRef.current = true
         setMessages(sortedMessages)
         setHasMoreHistory(fetchedMessages.length >= PAGE_LIMIT)
-        requestAnimationFrame(() => {
-          if (container) {
-            container.scrollTop = container.scrollHeight
-          }
-        })
       } catch (error) {
         console.error('Failed to load messages', error)
       } finally {
@@ -173,6 +172,7 @@ const ChatRoom = ({room, onLeave }) => {
         if (alreadyExists) {
           return prevMessages
         }
+        shouldAutoScrollRef.current = true
         return sortMessagesAscending([...prevMessages, message])
       })
     }
@@ -192,18 +192,86 @@ const ChatRoom = ({room, onLeave }) => {
   }, [roomId, socket])
 
   const handleSendMessage = useCallback(
-    (text) => {
+    async ({ text, attachment: selectedAttachment }) => {
       if (!socket || !roomId) {
         return
       }
+
+      const hasText = Boolean(text && text.trim())
+      const hasFile = Boolean(selectedAttachment)
+
+      if (!hasText && !hasFile) {
+        return
+      }
+
+      let fileUrl = null
+      if (hasFile) {
+        setAttachmentError('')
+        try {
+          fileUrl = await imageService.uploadAttachment(selectedAttachment, session?.token)
+        } catch (error) {
+          console.error('Failed to upload attachment', error)
+          setAttachmentError(error.message || 'Could not upload file. Please try again.')
+          return
+        }
+      }
+
       socket.emit(ChatEvents.SEND_MESSAGE, {
         roomId,
         type: roomType,
-        content: text,
+        content: hasText ? text : '',
+        ...(fileUrl ? { file: fileUrl } : {}),
       })
+
+      if (hasFile) {
+        setAttachment(null)
+      }
     },
-    [roomId, roomType, socket],
+    [roomId, roomType, session, socket],
   )
+
+  const clearAttachment = useCallback(() => {
+    setAttachment(null)
+    setAttachmentError('')
+  }, [])
+
+  const handleSelectAttachment = useCallback((file) => {
+    if (!file) {
+      clearAttachment()
+      return
+    }
+    const extension = file.name?.split('.').pop()?.toLowerCase() ?? ''
+    const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'pdf']
+    const isAllowedExtension = allowedExtensions.includes(extension)
+    const isAllowedSize = file.size <= 5 * 1024 * 1024
+
+    if (!isAllowedExtension) {
+      setAttachment(null)
+      setAttachmentError('Unsupported file type. Allowed: png, jpg, jpeg, gif, doc, docx, xls, xlsx, pdf.')
+      return
+    }
+    if (!isAllowedSize) {
+      setAttachment(null)
+      setAttachmentError('File is too large. Maximum size is 5MB.')
+      return
+    }
+    setAttachment(file)
+    setAttachmentError('')
+  }, [clearAttachment])
+
+  useEffect(() => {
+    if (!shouldAutoScrollRef.current) {
+      return
+    }
+    const container = messagesContainerRef.current
+    if (!container) {
+      return
+    }
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight
+      shouldAutoScrollRef.current = false
+    })
+  }, [messages])
 
   return (
     <section className="chat-room">
@@ -231,7 +299,13 @@ const ChatRoom = ({room, onLeave }) => {
           )}
         </div>
       </div>
-      <UserInput onSend={handleSendMessage} />
+      <UserInput
+        onSend={handleSendMessage}
+        onSelectAttachment={handleSelectAttachment}
+        onClearAttachment={clearAttachment}
+        attachment={attachment}
+        attachmentError={attachmentError}
+      />
     </section>
   )
 }
