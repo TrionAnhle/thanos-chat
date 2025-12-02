@@ -1,52 +1,46 @@
-import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import MainPage from './pages/MainPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
-import { saveAuthSession } from './services/authStorage.js'
 import { SocketProvider } from './context/SocketContext.jsx'
-
-const VIEWS = {
-  LOGIN: 'login',
-  REGISTER: 'register',
-  JOIN: 'join',
-}
+import { VIEWS, loginSuccess, logout, setView } from './store/authSlice.js'
+import { clearChatUser, setChatUser } from './store/chatSlice.js'
 
 const App = () => {
-  const [view, setView] = useState(VIEWS.LOGIN)
-  const [authUser, setAuthUser] = useState(null)
-  const [chatUser, setChatUser] = useState(null)
+  const dispatch = useDispatch()
+  const view = useSelector((state) => state.auth.view)
+  const authUser = useSelector((state) => state.auth.session)
+  const chatUser = useSelector((state) => state.chat.chatUser)
 
   const handleAuthSuccess = (authState) => {
-    setAuthUser(authState)
-    setChatUser(null)
-    setView(VIEWS.JOIN)
+    dispatch(loginSuccess(authState))
+    dispatch(clearChatUser())
   }
 
   const handleLogout = () => {
-    setAuthUser(null)
-    setChatUser(null)
-    saveAuthSession(null)
-    setView(VIEWS.LOGIN)
+    dispatch(logout())
+    dispatch(clearChatUser())
   }
 
   const handleJoinRoom = (payload) => {
-    setChatUser(payload)
+    dispatch(setChatUser(payload))
   }
 
   const handleLeaveRoom = () => {
-    setChatUser(null)
+    dispatch(clearChatUser())
   }
 
   let content = null
 
   if (!authUser && view === VIEWS.REGISTER) {
-    content = <RegisterPage onSuccess={handleAuthSuccess} onSwitchToLogin={() => setView(VIEWS.LOGIN)} />
+    content = <RegisterPage onSuccess={handleAuthSuccess} onSwitchToLogin={() => dispatch(setView(VIEWS.LOGIN))} />
   } else if (!authUser) {
-    content = <LoginPage onSuccess={handleAuthSuccess} onSwitchToRegister={() => setView(VIEWS.REGISTER)} />
+    content = <LoginPage onSuccess={handleAuthSuccess} onSwitchToRegister={() => dispatch(setView(VIEWS.REGISTER))} />
   } else {
     content = (
       <SocketProvider>
         <MainPage
+          authUser={authUser}
           defaultUsername={authUser.username ?? ''}
           onLogout={handleLogout}
           email={authUser.email}

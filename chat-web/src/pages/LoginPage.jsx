@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import authService from '../services/authService.js'
-import { saveAuthSession } from '../services/authStorage.js'
 import { Toaster, toast } from 'react-hot-toast';
 
 const LoginPage = ({ onSuccess, onSwitchToRegister }) => {
@@ -36,7 +35,6 @@ const LoginPage = ({ onSuccess, onSwitchToRegister }) => {
       id: response.id,
       name: response.name,
     }
-    saveAuthSession(authState)
     onSuccess?.(authState)
   }
 
