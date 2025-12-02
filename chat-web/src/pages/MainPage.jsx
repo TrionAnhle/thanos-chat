@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import ChatRoom from './ChatRoom.jsx'
 import userService from '../services/userService.js'
 import roomService from '../services/roomService.js'
-import { loadAuthSession } from '../services/authStorage.js'
 
 const normalizeSearchResults = (payload) => {
   if (!payload) {
@@ -16,8 +15,7 @@ const normalizeSearchResults = (payload) => {
   return { rooms, users }
 }
 
-const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
-  const [authState, setAuthState] = useState({})
+const MainPage = ({ authUser, onJoin, onLogout, chatUser, onLeave }) => {
   const [room, setRoom] = useState('general')
   const [recentRooms, setRecentRooms] = useState([])
   const [isChat, setIsChat] = useState(false)
@@ -45,7 +43,6 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
       }
     }
 
-    setAuthState(loadAuthSession());
     fetchRecentChats()
 
     return () => {
@@ -135,7 +132,7 @@ const MainPage = ({ onJoin, onLogout, chatUser, onLeave }) => {
         </div>
         <div className="join-page__footer">
           <div>
-            {`${authState?.name}(${authState?.username})`}
+            {`${authUser?.name}(${authUser?.username})`}
           </div>
           <button type="button" className="link-button" onClick={onLogout}>
             Log out
