@@ -11,9 +11,9 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_REGION=${MINIO_REGION}
     deploy:
-      replicas: 3
+      replicas: 1
     ports:
-      - "3000-3002:3000"
+      - "3000:3000"
     networks:
       - vps-net
 
